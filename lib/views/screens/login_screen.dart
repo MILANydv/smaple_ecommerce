@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/shop_scope.dart';
 import '../../core/theme/app_tokens.dart';
+import '../widgets/auth_scaffold.dart';
 
 /// View: the sign in page.
 ///
 /// The screen owns the text controllers and the form key, everything else
-/// (validation rules, the session) belongs to [AuthController].
+/// (validation rules, the session, which page comes next) belongs to
+/// [AuthController].
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -53,201 +55,118 @@ class _LoginScreenState extends State<LoginScreen> {
     final ColorScheme scheme = theme.colorScheme;
     final AuthController auth = ShopScope.of(context).auth;
 
-    return Scaffold(
-      body: Stack(
+    return AuthScaffold(
+      title: 'Welcome to Shop',
+      subtitle:
+          'Sign in to browse the catalog, filter it and keep your cart between sessions.',
+      footer: Column(
         children: <Widget>[
-          Positioned(
-            top: -140,
-            right: -90,
-            child: _Glow(color: scheme.primaryContainer, size: 320),
-          ),
-          Positioned(
-            top: 120,
-            left: -120,
-            child: _Glow(color: scheme.tertiaryContainer, size: 260),
-          ),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.lg,
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 440),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        const _BrandMark(),
-                        const SizedBox(height: AppSpacing.lg),
-                        Text(
-                          'Welcome to Shop',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: AppSpacing.xxs),
-                        Text(
-                          'Sign in to browse the catalog, filter it and keep your cart between sessions.',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        TextFormField(
-                          key: const Key('email_field'),
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          autocorrect: false,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            hintText: demoEmail,
-                            prefixIcon: Icon(Icons.alternate_email_rounded),
-                          ),
-                          validator: AuthController.validateEmail,
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        TextFormField(
-                          key: const Key('password_field'),
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _signIn(auth),
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            hintText:
-                                'At least ${AuthController.minPasswordLength} characters',
-                            prefixIcon: const Icon(Icons.lock_outline_rounded),
-                            suffixIcon: IconButton(
-                              key: const Key('toggle_password'),
-                              tooltip: _obscurePassword
-                                  ? 'Show password'
-                                  : 'Hide password',
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                              ),
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                            ),
-                          ),
-                          validator: AuthController.validatePassword,
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        FilledButton(
-                          key: const Key('sign_in_button'),
-                          onPressed: auth.isBusy ? null : () => _signIn(auth),
-                          child: auth.isBusy
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                  ),
-                                )
-                              : const Text('Sign in'),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        OutlinedButton.icon(
-                          key: const Key('demo_account_button'),
-                          onPressed: _fillDemo,
-                          icon: const Icon(Icons.auto_awesome_rounded),
-                          label: const Text('Fill demo account'),
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Icon(
-                              Icons.lock_rounded,
-                              size: 14,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Any email works · $demoPassword',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              TextButton(
+                key: const Key('forgot_password_link'),
+                onPressed: auth.showForgotPassword,
+                child: const Text('Forgot password?'),
+              ),
+              Text(
+                '·',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
-            ),
+              TextButton(
+                key: const Key('register_link'),
+                onPressed: auth.showRegister,
+                child: const Text('Create account'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              Icon(Icons.lock_rounded, size: 14, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text(
+                'Any email works · $demoPassword',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Gradient app mark.
-class _BrandMark extends StatelessWidget {
-  const _BrandMark();
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Center(
-      child: Container(
-        height: 104,
-        width: 104,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              theme.colorScheme.primary,
-              theme.colorScheme.tertiary,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(AppRadii.xl),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: 0.28),
-              blurRadius: 28,
-              offset: const Offset(0, 12),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            TextFormField(
+              key: const Key('email_field'),
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                hintText: demoEmail,
+                prefixIcon: Icon(Icons.alternate_email_rounded),
+              ),
+              validator: AuthController.validateEmail,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextFormField(
+              key: const Key('password_field'),
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _signIn(auth),
+              decoration: InputDecoration(
+                labelText: 'Password',
+                hintText:
+                    'At least ${AuthController.minPasswordLength} characters',
+                prefixIcon: const Icon(Icons.lock_outline_rounded),
+                suffixIcon: IconButton(
+                  key: const Key('toggle_password'),
+                  tooltip: _obscurePassword
+                      ? 'Show password'
+                      : 'Hide password',
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () => setState(
+                    () => _obscurePassword = !_obscurePassword,
+                  ),
+                ),
+              ),
+              validator: AuthController.validatePassword,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            FilledButton(
+              key: const Key('sign_in_button'),
+              onPressed: auth.isBusy ? null : () => _signIn(auth),
+              child: auth.isBusy
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    )
+                  : const Text('Sign in'),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            OutlinedButton.icon(
+              key: const Key('demo_account_button'),
+              onPressed: _fillDemo,
+              icon: const Icon(Icons.auto_awesome_rounded),
+              label: const Text('Fill demo account'),
             ),
           ],
-        ),
-        child: const Icon(
-          Icons.storefront_rounded,
-          size: 52,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
-/// Soft coloured circle used to give the page some depth.
-class _Glow extends StatelessWidget {
-  const _Glow({required this.color, required this.size});
-
-  final Color color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        height: size,
-        width: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: <Color>[color.withValues(alpha: 0.9), Colors.transparent],
-          ),
         ),
       ),
     );

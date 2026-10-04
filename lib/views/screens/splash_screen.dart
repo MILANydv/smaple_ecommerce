@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/boot_controller.dart';
 import '../../controllers/shop_scope.dart';
 import '../../core/theme/app_tokens.dart';
+import '../widgets/brand_mark.dart';
 
 /// View: the splash screen shown while the app boots.
 ///
@@ -36,12 +37,15 @@ class _SplashScreenState extends State<SplashScreen> {
           Positioned(
             top: -160,
             left: -80,
-            child: _Glow(color: theme.colorScheme.primaryContainer),
+            child: Glow(color: theme.colorScheme.primaryContainer, size: 320),
           ),
           Positioned(
             bottom: -140,
             right: -100,
-            child: _Glow(color: theme.colorScheme.tertiaryContainer),
+            child: Glow(
+              color: theme.colorScheme.tertiaryContainer,
+              size: 320,
+            ),
           ),
           SafeArea(
             child: Padding(
@@ -50,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   const Spacer(),
-                  const _BrandMark(),
+                  const BrandMark(size: 128, animate: true),
                   const SizedBox(height: AppSpacing.lg),
                   TweenAnimationBuilder<double>(
                     tween: Tween<double>(begin: 0, end: 1),
@@ -143,93 +147,6 @@ class _BootProgress extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Gradient app mark that scales in once.
-class _BrandMark extends StatefulWidget {
-  const _BrandMark();
-
-  @override
-  State<_BrandMark> createState() => _BrandMarkState();
-}
-
-class _BrandMarkState extends State<_BrandMark>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 700),
-  )..forward();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final Animation<double> curve = CurvedAnimation(
-      parent: _controller,
-      curve: AppMotion.emphasized,
-    );
-
-    return ScaleTransition(
-      scale: Tween<double>(begin: 0.4, end: 1).animate(curve),
-      child: FadeTransition(
-        opacity: _controller,
-        child: Container(
-          height: 128,
-          width: 128,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                theme.colorScheme.primary,
-                theme.colorScheme.tertiary,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(AppRadii.xl),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                blurRadius: 32,
-                offset: const Offset(0, 14),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.storefront_rounded,
-            size: 64,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Glow extends StatelessWidget {
-  const _Glow({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        height: 320,
-        width: 320,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: <Color>[color.withValues(alpha: 0.85), Colors.transparent],
-          ),
-        ),
-      ),
     );
   }
 }

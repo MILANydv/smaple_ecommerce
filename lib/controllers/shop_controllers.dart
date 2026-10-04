@@ -27,12 +27,17 @@ class ShopControllers {
     ProductService? productService,
     DateTime Function()? clock,
     Duration splashDuration = const Duration(milliseconds: 1100),
+    Duration authLatency = const Duration(milliseconds: 650),
   }) {
     final CatalogController catalog = CatalogController(
       service: productService ?? ProductService(),
     );
     return ShopControllers(
-      auth: AuthController(storage: storage, clock: clock),
+      auth: AuthController(
+        storage: storage,
+        clock: clock,
+        requestLatency: authLatency,
+      ),
       catalog: catalog,
       cart: CartController(
         storage: storage,

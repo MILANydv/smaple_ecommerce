@@ -29,7 +29,7 @@ flutter run --release        # release build
 
 # 5. quality checks
 flutter analyze              # expects: No issues found!
-flutter test                 # expects: 45 tests, all green
+flutter test                 # expects: 76 tests, all green
 ```
 
 Only the **android** and **ios** targets are generated in this repository. To try
@@ -65,13 +65,35 @@ no backend. The *Fill demo account* button types `student@school.edu` /
 | Add the same product twice | the grid tile shows an "n in cart" pill |
 | Search `camera` | a sold out product, its add button is disabled |
 | Add an item on the detail page | snack bar with a *View cart* action |
+| *Forgot password?* → *Send reset link* | the confirmation panel names the address |
+| *Create account* → fill the form | the new account is signed in, greeting shows the name |
+| Avatar menu → *Show onboarding* | replays the tour, then returns to the shop |
+| Clear the app data and relaunch | splash + onboarding run again from scratch |
 
 ---
 
 ## 2. What is in the app
 
-**Login** — gradient brand mark, form validation that comes from the
-controller, show/hide password, demo autofill, busy state on the button.
+**Splash** — branded gradient mark that scales in, a determinate progress ring
+and a "Preparing your catalog" caption. It waits for a minimum visible time and
+prefetches the products, so the shop page never shows an empty grid.
+
+**Onboarding** — three slides shown once on a fresh install: a swipeable
+`PageView`, tappable page dots, *Skip*, *Next* and *Get started*. The flag is
+stored, so the next launch goes straight to the login screen. Replay it any time
+from the avatar menu → *Show onboarding*.
+
+**Sign in** — gradient brand mark, form validation that comes from the
+controller, show/hide password, demo autofill, busy state on the button, and
+links to the other two account pages.
+
+**Create account** — name, email, password and a repeat field, with a live
+four segment strength meter and a privacy note that explains what is stored
+where. Registering signs the new account straight in.
+
+**Forgot password** — one field, then a "check your inbox" panel with a resend
+button and a way back to a different address. There is no backend, so the panel
+is driven by the controller flag rather than a server response.
 
 **Shop (home)** — greeting header, search field, animated category chips, a
 *Featured* carousel, a result summary with a *Clear* action, a pull to refresh,
@@ -107,13 +129,18 @@ lib/
 ├── models/                          MODEL — plain data, no Flutter widgets
 │   ├── product.dart                 Product: fromJson / toJson / derived getters (sale, stock, labels)
 │   ├── cart_item.dart               CartItem: a product plus a quantity, and its line total
-│   └── order.dart                   Order + OrderLine: the receipt snapshot after checkout
+│   ├── order.dart                   Order + OrderLine: the receipt snapshot after checkout
+│   ├── onboarding_slide.dart        OnboardingSlide + the copy of the three slides
+│   └── password_strength.dart       PasswordStrength: grades a password for the register meter
 │
 ├── controllers/                     CONTROLLER — state + rules + ChangeNotifier
-│   ├── auth_controller.dart         session: sign in/out, restore, greeting, form validation
+│   ├── boot_controller.dart         start up: minimum splash time + catalog prefetch
+│   ├── onboarding_controller.dart   first run: which slide, is the tour finished
+│   ├── auth_controller.dart         session + all three account pages: mode, sign in, register, reset,
+│   │                                validation rules, password grading, restore, greeting
 │   ├── catalog_controller.dart      products: loading, search, categories, sorting, filtering
 │   ├── cart_controller.dart         cart: quantities, totals, shipping, tax, promo, checkout
-│   ├── shop_controllers.dart        creates the three and wires their dependencies
+│   ├── shop_controllers.dart        creates the five and wires their dependencies
 │   └── shop_scope.dart              InheritedWidget that hands them to the views
 │
 ├── services/                        data sources, the only async / IO boundary
@@ -125,7 +152,11 @@ lib/
 │
 └── views/                           VIEW — widgets only, no business rules
     ├── screens/
-    │   ├── login_screen.dart
+    │   ├── splash_screen.dart        brand mark, progress ring, starts the boot sequence
+    │   ├── onboarding_screen.dart    PageView + dots + skip/next, ends on the sign in page
+    │   ├── login_screen.dart         sign in form, demo autofill, links to the other pages
+    │   ├── register_screen.dart      create account form with the password strength meter
+    │   ├── forgot_password_screen.dart  request a reset link, then the confirmation panel
     │   ├── home_screen.dart         CustomScrollView: header, search, chips, carousel, grid
     │   ├── product_detail_screen.dart
     │   ├── cart_screen.dart
@@ -144,6 +175,9 @@ lib/
         ├── search_field.dart        search input + category chips
         ├── price_label.dart         price, original price, saving
         ├── rating_badge.dart        star + rating pill
+        ├── auth_scaffold.dart       frame shared by the three account pages
+        ├── brand_mark.dart          gradient app mark + soft background glows
+        ├── page_dots.dart           animated page indicator
         ├── section_header.dart      heading with optional trailing action
         ├── empty_state.dart         "nothing here" state with an optional action
         ├── catalog_skeleton.dart    pulsing placeholders while loading
@@ -155,7 +189,9 @@ test/
 ├── catalog_controller_test.dart     loading, search, categories, sorting, notifications
 ├── cart_controller_test.dart        auth + cart rules: totals, stock caps, persistence, promo, orders
 ├── widget_test.dart                 14 user journeys: login, search, sort, detail, cart, checkout, sign out
-└── layout_test.dart                 the screens on a 390 x 844 phone, no overflow, no exceptions
+├── auth_flow_test.dart              account pages: rules, register, strength meter, reset confirmation
+├── startup_test.dart                boot + onboarding rules, splash, slides, replay from the menu
+└── layout_test.dart                 every screen on a 390 x 844 phone, no overflow, no exceptions
 ```
 
 ---
@@ -172,7 +208,7 @@ controllers/                        rules, state, ChangeNotifier
 services/  →  data/                jsonDecode · SharedPreferences
         │
         ▼
-models/                             Product · CartItem · Order
+models/                             Product · CartItem · Order · OnboardingSlide · PasswordStrength
 ```
 
 The rules that make it MVC:
@@ -194,7 +230,9 @@ The rules that make it MVC:
 
 | Controller | Owns | Example rule |
 |---|---|---|
-| `AuthController` | the session | "a password needs 6 characters", "remember the email" |
+| `BootController` | start up | "show the splash for at least 1.1 s, fetch in the meantime" |
+| `OnboardingController` | first run | "show the tour once, remember that it was seen" |
+| `AuthController` | the session and the three account pages | "a password needs 6 characters", "remember the email" |
 | `CatalogController` | products + filters | "sorted by rating when nothing else is chosen" |
 | `CartController` | quantities + money | "free delivery above \$75", "never more than the stock on hand" |
 
@@ -221,6 +259,30 @@ CartController(
   resolveProduct: catalog.productById,   // cart asks, catalog answers
 );
 ```
+
+### The whole navigation is one switch
+
+`main.dart` holds the only page transition logic in the app. It listens to the
+boot, onboarding and session controllers and picks the screen:
+
+```dart
+switch ((booted, onboarded, signedIn)) {
+  (false, _, _)       => SplashScreen(),      // the splash starts the boot sequence
+  (true, false, _)    => OnboardingScreen(),  // first run only, ends on sign in
+  (true, true, false) => switch (auth.mode) { // no session yet
+    AuthMode.signIn        => LoginScreen(),
+    AuthMode.register      => RegisterScreen(),
+    AuthMode.forgotPassword => ForgotPasswordScreen(),
+  },
+  (true, true, true)  => HomeScreen(),        // signed in
+}
+```
+
+Because the decision lives in a controller and not in a `Navigator` call,
+signing in, signing out, finishing the tour and moving between the account
+pages never push or pop a route.
+(Those screens are deliberately **not** `const`: a canonicalised `const` widget
+is identical to the previous one, and Flutter then skips the rebuild.)
 
 ### Where the design system comes in
 
@@ -252,7 +314,9 @@ Two things are stored on the device with `SharedPreferences`:
 | Key | Value |
 |---|---|
 | `saved_email` | the signed in address, so the session survives a restart |
+| `user_name` | `Ada Lovelace`, typed on the register page, cleared on sign out |
 | `saved_cart` | `{"p1": 2, "p5": 1}`, the cart survives a restart |
+| `onboarding_done` | `true` once the tour was finished or skipped |
 
 The cart stores ids only. Names and prices are resolved from the catalog at read
 time, so the stored payload can never go stale.
@@ -271,7 +335,7 @@ total     = subtotal − discount + delivery + tax
 ## 6. Tests
 
 ```bash
-flutter test                          # 45 tests
+flutter test                          # 76 tests
 flutter test test/widget_test.dart    # only the user journeys
 ```
 
@@ -281,11 +345,15 @@ flutter test test/widget_test.dart    # only the user journeys
 | `catalog_controller_test.dart` | loading, search, categories, all five sorts, listener notifications |
 | `cart_controller_test.dart` | auth rules, quantities, stock caps, persistence, free shipping, promos, checkout |
 | `widget_test.dart` | login → shop → search → sort → detail → cart → promo → checkout → sign out |
-| `layout_test.dart` | the same screens on a 390 × 844 phone, asserting no overflow |
+| `auth_flow_test.dart` | account page rules, register validation, strength meter, reset confirmation |
+| `startup_test.dart` | boot timing and prefetch, onboarding page rules, splash, slides, dots, skip, replay |
+| `layout_test.dart` | splash, onboarding and the shop on a 390 × 844 phone, asserting no overflow |
 
 `test/helpers.dart` mounts the app with fake storage, a zero latency product
 service and a fixed clock, so the greeting in the app bar is always
-"Good afternoon" and the tests never wait on a timer.
+"Good afternoon" and the tests never wait on a timer. `settleBoot(tester)`
+pushes past the splash (which is deliberately slow enough to be seen) in a few
+pumps instead of one long wait.
 
 ---
 

@@ -1,3 +1,6 @@
+import 'package:ecommerce/controllers/shop_controllers.dart';
+import 'package:ecommerce/main.dart';
+import 'package:ecommerce/services/storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -72,5 +75,95 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.byKey(const Key('sign_out_item')), findsOneWidget);
+  });
+
+  testWidgets('the splash fits on a small phone', (WidgetTester tester) async {
+    tester.view.physicalSize = phone;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final ShopControllers controllers = await buildControllers(
+      initialPrefs: <String, Object>{StorageService.onboardingKey: true},
+    );
+    await tester.pumpWidget(ShopApp(controllers: controllers));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('splash_screen')), findsOneWidget);
+    expect(find.byKey(const Key('splash_caption')), findsOneWidget);
+
+    await settleBoot(tester);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Welcome to Shop'), findsOneWidget);
+  });
+
+  testWidgets('the onboarding slides fit on a small phone', (
+    WidgetTester tester,
+  ) async {
+    await pumpShop(tester, size: phone, onboardingSeen: false);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('onboarding_next')), findsOneWidget);
+    expect(find.text('Step 1 of 3'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('onboarding_next')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Step 2 of 3'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('dot_2')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.widgetWithText(FilledButton, 'Get started'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('onboarding_next')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Welcome to Shop'), findsOneWidget);
+  });
+
+  testWidgets('the register page fits on a small phone', (
+    WidgetTester tester,
+  ) async {
+    await pumpShop(tester, size: phone);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('register_link')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Create your account'), findsOneWidget);
+    expect(find.byKey(const Key('name_field')), findsOneWidget);
+    expect(find.byKey(const Key('confirm_field')), findsOneWidget);
+    expect(find.byKey(const Key('strength_label')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('name_field')), 'Ada Lovelace');
+    await tester.enterText(find.byKey(const Key('email_field')), 'ada@school.edu');
+    await tester.enterText(find.byKey(const Key('password_field')), 'flutter123');
+    await tester.enterText(find.byKey(const Key('confirm_field')), 'flutter123');
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('create_account_button')), findsOneWidget);
+  });
+
+  testWidgets('the forgot password page fits on a small phone', (
+    WidgetTester tester,
+  ) async {
+    await pumpShop(tester, size: phone);
+
+    await tester.tap(find.byKey(const Key('forgot_password_link')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Reset your password'), findsOneWidget);
+    expect(find.byKey(const Key('send_reset_button')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('email_field')), 'ada@school.edu');
+    await tester.tap(find.byKey(const Key('send_reset_button')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('reset_confirmation')), findsOneWidget);
+    expect(find.text('Link sent to ada@school.edu'), findsOneWidget);
   });
 }

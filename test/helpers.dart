@@ -20,6 +20,8 @@ Future<ShopControllers> buildControllers({
     storage: StorageService(prefs),
     productService: ProductService(latency: Duration.zero),
     clock: () => fixedNoon,
+    // No fake network delay: the busy state is covered by its own test.
+    authLatency: Duration.zero,
   );
 }
 

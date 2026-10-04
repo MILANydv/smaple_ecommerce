@@ -8,12 +8,17 @@ class StorageService {
   StorageService(this._prefs);
 
   static const String emailKey = 'saved_email';
+  static const String nameKey = 'user_name';
   static const String cartKey = 'saved_cart';
   static const String onboardingKey = 'onboarding_done';
 
   final SharedPreferences _prefs;
 
   String? get savedEmail => _prefs.getString(emailKey);
+
+  /// Name typed on the register screen. Optional: an account that only ever
+  /// signed in has no name, and the app falls back to the email prefix.
+  String? get savedName => _prefs.getString(nameKey);
 
   bool get onboardingDone => _prefs.getBool(onboardingKey) ?? false;
 
@@ -31,10 +36,15 @@ class StorageService {
 
   Future<void> saveEmail(String email) => _prefs.setString(emailKey, email);
 
+  Future<void> saveName(String name) => _prefs.setString(nameKey, name);
+
   Future<void> saveCart(Map<String, int> cart) =>
       _prefs.setString(cartKey, jsonEncode(cart));
 
-  Future<void> clearSession() => _prefs.remove(emailKey);
+  Future<void> clearSession() async {
+    await _prefs.remove(emailKey);
+    await _prefs.remove(nameKey);
+  }
 
   Future<void> clearCart() => _prefs.remove(cartKey);
 

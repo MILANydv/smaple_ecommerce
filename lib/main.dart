@@ -7,9 +7,11 @@ import 'controllers/shop_scope.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_tokens.dart';
 import 'services/storage_service.dart';
+import 'views/screens/forgot_password_screen.dart';
 import 'views/screens/home_screen.dart';
 import 'views/screens/login_screen.dart';
 import 'views/screens/onboarding_screen.dart';
+import 'views/screens/register_screen.dart';
 import 'views/screens/splash_screen.dart';
 
 Future<void> main() async {
@@ -26,9 +28,12 @@ Future<void> main() async {
   );
 }
 
-/// Root widget: theme + the single gate that shows either the login screen or
-/// the shop. Sign in and sign out never touch the [Navigator], they just flip
-/// [AuthController.isSignedIn] and this widget swaps the page.
+/// Root widget: theme + the single gate that decides which screen is on
+/// screen: splash, onboarding, one of the three account pages, or the shop.
+///
+/// Sign in, sign out and moving between the account pages never touch the
+/// [Navigator]. They flip a flag on a controller and this widget swaps the
+/// page, which is why there is no route stack to keep in sync.
 class ShopApp extends StatefulWidget {
   const ShopApp({super.key, required this.controllers});
 
@@ -83,8 +88,15 @@ class _ShopAppState extends State<ShopApp> {
                 SplashScreen(key: const ValueKey<String>('splash')),
               (true, false, _) =>
                 OnboardingScreen(key: const ValueKey<String>('onboarding')),
-              (true, true, false) =>
-                LoginScreen(key: const ValueKey<String>('login')),
+              (true, true, false) => switch (auth.mode) {
+                AuthMode.signIn =>
+                  LoginScreen(key: const ValueKey<String>('login')),
+                AuthMode.register =>
+                  RegisterScreen(key: const ValueKey<String>('register')),
+                AuthMode.forgotPassword => ForgotPasswordScreen(
+                  key: const ValueKey<String>('forgot-password'),
+                ),
+              },
               (true, true, true) =>
                 HomeScreen(key: const ValueKey<String>('home')),
             };
