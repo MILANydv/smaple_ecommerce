@@ -9,10 +9,13 @@ class StorageService {
 
   static const String emailKey = 'saved_email';
   static const String cartKey = 'saved_cart';
+  static const String onboardingKey = 'onboarding_done';
 
   final SharedPreferences _prefs;
 
   String? get savedEmail => _prefs.getString(emailKey);
+
+  bool get onboardingDone => _prefs.getBool(onboardingKey) ?? false;
 
   Map<String, int> loadCart() {
     final String? raw = _prefs.getString(cartKey);
@@ -34,4 +37,8 @@ class StorageService {
   Future<void> clearSession() => _prefs.remove(emailKey);
 
   Future<void> clearCart() => _prefs.remove(cartKey);
+
+  Future<void> saveOnboardingDone() => _prefs.setBool(onboardingKey, true);
+
+  Future<void> clearOnboardingDone() => _prefs.remove(onboardingKey);
 }

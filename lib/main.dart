@@ -9,6 +9,8 @@ import 'core/theme/app_tokens.dart';
 import 'services/storage_service.dart';
 import 'views/screens/home_screen.dart';
 import 'views/screens/login_screen.dart';
+import 'views/screens/onboarding_screen.dart';
+import 'views/screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,13 +58,40 @@ class _ShopAppState extends State<ShopApp> {
         darkTheme: AppTheme.dark,
         themeMode: ThemeMode.system,
         home: ListenableBuilder(
-          listenable: auth,
+          listenable: Listenable.merge(<Listenable>[
+            widget.controllers.boot,
+            widget.controllers.onboarding,
+            auth,
+          ]),
           builder: (BuildContext context, Widget? child) {
+            final bool booted = widget.controllers.boot.isReady;
+            final bool onboarded = widget.controllers.onboarding.isComplete;
+            final bool signedIn = auth.isSignedIn;
+
+            // The whole navigation of the app is this one switch: splash,
+            // onboarding, login, shop.
+            //
+            // The screens are deliberately not `const`: a canonicalised const
+            // widget is identical to the previous one, and Flutter skips the
+            // rebuild when the widget it is handed did not change.
+            final Widget screen = switch ((
+              booted,
+              onboarded,
+              signedIn,
+            )) {
+              (false, _, _) =>
+                SplashScreen(key: const ValueKey<String>('splash')),
+              (true, false, _) =>
+                OnboardingScreen(key: const ValueKey<String>('onboarding')),
+              (true, true, false) =>
+                LoginScreen(key: const ValueKey<String>('login')),
+              (true, true, true) =>
+                HomeScreen(key: const ValueKey<String>('home')),
+            };
+
             return AnimatedSwitcher(
-              duration: AppMotion.medium,
-              child: auth.isSignedIn
-                  ? const HomeScreen(key: ValueKey<String>('home'))
-                  : const LoginScreen(key: ValueKey<String>('login')),
+              duration: booted ? AppMotion.medium : Duration.zero,
+              child: screen,
             );
           },
         ),

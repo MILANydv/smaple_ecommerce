@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_tokens.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/onboarding_controller.dart';
 
 /// Avatar in the app bar. Tapping it opens the account sheet, where signing
 /// out lives together with a confirmation dialog.
 class AccountButton extends StatelessWidget {
-  const AccountButton({super.key, required this.auth});
+  const AccountButton({super.key, required this.auth, required this.onboarding});
 
   final AuthController auth;
+  final OnboardingController onboarding;
 
   static const String _signOutValue = 'sign-out';
+  static const String _tourValue = 'tour';
 
   Future<void> _confirmSignOut(BuildContext context) async {
     final bool? confirmed = await showDialog<bool>(
@@ -54,6 +57,7 @@ class AccountButton extends StatelessWidget {
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.control),
       onSelected: (String value) {
         if (value == _signOutValue) _confirmSignOut(context);
+        if (value == _tourValue) onboarding.restart();
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
         PopupMenuItem<String>(
@@ -69,6 +73,15 @@ class AccountButton extends StatelessWidget {
                 style: theme.textTheme.titleSmall,
               ),
             ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          key: Key('replay_tour_item'),
+          value: _tourValue,
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.auto_awesome_rounded),
+            title: Text('Show onboarding'),
           ),
         ),
         const PopupMenuDivider(),

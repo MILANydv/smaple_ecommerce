@@ -27,17 +27,37 @@ Future<ShopControllers> buildControllers({
 ///
 /// The surface is enlarged so a full phone sized layout is on screen: on the
 /// default 800x600 test window the catalog grid starts below the fold.
+/// Onboarding is marked as seen by default, so tests start at the login page.
 Future<ShopControllers> pumpShop(
   WidgetTester tester, {
   Size size = const Size(1000, 1800),
+  bool onboardingSeen = true,
+  Duration splash = const Duration(milliseconds: 1100),
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  final ShopControllers controllers = await buildControllers();
+  final ShopControllers controllers = await buildControllers(
+    initialPrefs: onboardingSeen
+        ? <String, Object>{StorageService.onboardingKey: true}
+        : <String, Object>{},
+  );
   await tester.pumpWidget(ShopApp(controllers: controllers));
+  await settleBoot(tester, splash: splash);
   return controllers;
+}
+
+/// Pumps past the splash screen. The splash uses a timer for its minimum
+/// visible time, so it is advanced with an explicit `pump` instead of
+/// `pumpAndSettle`.
+Future<void> settleBoot(
+  WidgetTester tester, {
+  Duration splash = const Duration(milliseconds: 1100),
+}) async {
+  await tester.pump();
+  await tester.pump(splash + const Duration(milliseconds: 100));
+  await tester.pump(const Duration(milliseconds: 400));
 }
 
 /// Signs in through the form, the way a user would.

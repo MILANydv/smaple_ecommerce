@@ -150,7 +150,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       count: controllers.cart.itemCount,
                       onPressed: _openCart,
                     ),
-                    AccountButton(auth: controllers.auth),
+                    AccountButton(
+                      auth: controllers.auth,
+                      onboarding: controllers.onboarding,
+                    ),
                     const SizedBox(width: AppSpacing.xxs),
                   ],
                 ),
